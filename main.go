@@ -17,6 +17,9 @@ var (
   connectServer = connect.Arg("server", "Server instance").Required().String()
   connectOutfile = connect.Arg("outfile", "Configuration output file").Required().String()
 
+  disconnect = app.Command("disconnect", "Send disconnection signal")
+  disconnectServer = disconnect.Arg("server", "Server instance").Required().String()
+
   client Client
 )
 
@@ -57,6 +60,15 @@ func Connect(server, outfile string) {
   file.WriteString("\npush \"redirect-gateway\"")
 }
 
+func Disconnect(server string) {
+  username := os.Getenv("common_name")
+  address := os.Getenv("ifconfig_pool_remote_ip")
+  received := os.Getenv("bytes_received")
+  sent := os.Getenv("bytes_sent")
+
+  client.Disconnect(server, username, address, received, sent)
+}
+
 func main() {
   command, err := app.Parse(os.Args[1:])
 
@@ -71,6 +83,10 @@ func main() {
 
     case connect.FullCommand():
       Connect(*connectServer, *connectOutfile)
+      break
+
+    case disconnect.FullCommand():
+      Disconnect(*disconnectServer)
       break
 
     default:
