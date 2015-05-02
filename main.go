@@ -8,17 +8,19 @@ import "gopkg.in/alecthomas/kingpin.v1"
 
 var (
   app = kingpin.New("magpie-backend", "OpenVPN helper for Magpie service")
+  config = app.Flag("config", "Configuration file").Required().ExistingFile()
+
   credentials = app.Command("credentials", "Check user credentials")
   credentialsServer = credentials.Arg("server", "Server instance").Required().String()
+
   connect = app.Command("connect", "Get connection configuration")
   connectServer = connect.Arg("server", "Server instance").Required().String()
   connectOutfile = connect.Arg("outfile", "Configuration output file").Required().String()
+
   client Client
 )
 
 func Credentials(server string) {
-  client.ConfigureFromIni("client.ini")
-
   username := os.Getenv("username")
   token := os.Getenv("password")
   origin := os.Getenv("untrusted_ip")
@@ -51,10 +53,18 @@ func Connect(server, outfile string) {
   } else {
     file.WriteString(data.Mask)
   }
+
+  file.WriteString("\npush \"redirect-gateway\"")
 }
 
 func main() {
-  switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+  command, err := app.Parse(os.Args[1:])
+
+  if *config != "" {
+    client.ConfigureFromIni(*config)
+  }
+
+  switch kingpin.MustParse(command, err) {
     case credentials.FullCommand():
       Credentials(*credentialsServer)
       break
